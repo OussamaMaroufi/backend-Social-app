@@ -7,8 +7,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 
-from .models import Post, PostReact
-from .serializers import PostSerializer
+from .models import Post, PostReact,Comment
+from .serializers import PostSerializer,CommentSerializer
 
 
 @api_view(['GET'])
@@ -140,21 +140,21 @@ def post_details(request, pk):
         return Response(message, status=status.HTTP_404_NOT_FOUND)
 
 
-@api_view(['GET'])
-def post_comments(request, pk):
-    post = Post.objects.get(id=pk)
-    comments = post.post_set.all()
-    serializer = PostSerializer(comments, many=True)
-    return Response(serializer.data)
+# @api_view(['GET'])
+# def post_comments(request, pk):
+#     post = Post.objects.get(id=pk)
+#     comments = post.post_set.all()
+#     serializer = PostSerializer(comments, many=True)
+#     return Response(serializer.data)
 
 
 @api_view(['POST'])
 @permission_classes((IsAuthenticated,))
-def update_react(request):
+def update_react(request,pk):
     user = request.user
     data = request.data
 
-    post = Post.objects.get(id=data['post_id'])
+    post = Post.objects.get(id=pk)
     # What if user is trying to remove their vote?
     react, created = PostReact.objects.get_or_create(post=post, user=user)
 
@@ -167,7 +167,7 @@ def update_react(request):
         react.save()
 
     # We re-query the vote to get the latest vote rank value
-    post = Post.objects.get(id=data['post_id'])
+    post = Post.objects.get(id=pk)
     serializer = PostSerializer(post, many=False)
 
     return Response(serializer.data)
@@ -177,3 +177,77 @@ def update_react(request):
 @permission_classes((IsAuthenticated,))
 def repost(request):
     pass
+
+
+
+#Crud Operation For comment 
+@api_view(['GET'])
+@permission_classes((IsAuthenticated,))
+def getComments(request,pk):
+    post = Post.objects.get(id=pk)
+    print(post)
+    comments = post.comment_set.all()
+    serializer = CommentSerializer(comments,many=True)
+
+    return Response(serializer.data)
+
+@api_view(["DELETE"])
+@permission_classes((IsAuthenticated,))
+def delete_comment(request, pk):
+    user = request.user
+    try:
+        comment = Comment.objects.get(id=pk)
+        if user != comment.user:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            comment.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+    except Exception as e:
+        return Response({'details': f"{e}"}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+@api_view(["PUT"])
+@permission_classes((IsAuthenticated,))
+def edit_comment(request,pk):
+    user = request.user
+    data = request.data
+
+    try:
+        comment =  Comment.objects.get(id=pk)
+        if user !=comment.user:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            serializer = CommentSerializer(comment, data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+            else:
+                return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
+
+
+
+    except Exception as e:
+        return Response({'details': f"{e}"}, status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+@permission_classes((IsAuthenticated,))
+def create_comment(request,pk):
+    user = request.user
+    data = request.data
+    post = Post.objects.get(id=pk)
+
+    comment = Comment.objects.create(user=user,post=post,content=data['content'])
+
+    serializer = CommentSerializer(comment,many=False)
+
+    return Response(serializer.data,status=status.HTTP_201_CREATED)
+
+
+
+
+
+
+

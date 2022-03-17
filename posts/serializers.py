@@ -48,6 +48,8 @@ class PostSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
         user = serializers.SerializerMethodField(read_only=True)
+       
+
         class Meta:
             model = Comment
             fields = '__all__'
@@ -56,8 +58,3 @@ class CommentSerializer(serializers.ModelSerializer):
             user = obj.user.userprofile
             serializer = UserProfileSerializer(user, many=False)
             return serializer.data
-
-        
-
-
-    

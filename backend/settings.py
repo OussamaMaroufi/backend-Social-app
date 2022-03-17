@@ -27,12 +27,13 @@ SECRET_KEY = 'django-insecure-++!jm4z#t=-19=@7ep7*xrw=5tzg22*hq^jd9!ce$8-(4a6+*5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost','192.168.1.100','http://f865-197-25-43-89.ngrok.io',"http://192.168.1.100"]
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost','192.168.1.100','http://f865-197-25-43-89.ngrok.io',"http://192.168.1.100","192.168.44.82"]
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
 
     'users.apps.UsersConfig',
     'posts.apps.PostsConfig',
+    'chat.apps.ChatConfig',
 
     'rest_framework',
     'corsheaders',
@@ -129,6 +131,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
+ASGI_APPLICATION = 'backend.asgi.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
 
 
 # Database

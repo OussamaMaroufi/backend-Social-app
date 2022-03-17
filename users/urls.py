@@ -23,6 +23,7 @@ urlpatterns = [
     path('profile_update/delete/', views.ProfilePictureDelete,
          name="profile_delete_photo"),
     path('password/change/', views.password_change, name="password-change"),
+    path('<str:username>/posts/',views.user_posts , name="user-posts")
 
 
 

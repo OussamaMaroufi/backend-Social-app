@@ -6,6 +6,10 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
+#TO handle image convert
+import base64
+from django.core.files.base import ContentFile
+
 
 from .models import Post, PostReact,Comment
 from .serializers import PostSerializer,CommentSerializer
@@ -17,6 +21,9 @@ def posts(request):
     query = request.query_params.get('q')
     if query == None:
         query = ''
+
+
+    
 
     user = request.user
     following = user.following.select_related('user')
@@ -52,9 +59,17 @@ def posts(request):
     for post in topPosts:
         if post not in posts:
             posts.append(post)
+            
+
+    _query = Q(content__icontains=query)
+    
+    if query != '':
+        posts = Post.objects.filter(_query)
+
+    
 
     paginator = PageNumberPagination()
-    paginator.page_size = 10
+    paginator.page_size = 8     #10
     result_page = paginator.paginate_queryset(posts, request)
     serializer = PostSerializer(result_page, many=True)
     return paginator.get_paginated_response(serializer.data)
@@ -66,7 +81,9 @@ def posts(request):
 def create_post(request):
     user = request.user
     data = request.data
-    print("Hello this data ",data)
+
+    # print("Hello this data ",data)
+
 
     # is_comment = data.get('isComment')
     # if is_comment:
@@ -77,12 +94,29 @@ def create_post(request):
     #         content=data['content'],
     #     )
     # else:
-    post = Post.objects.create(
-            user=user,
-            content=data['content'],
-            # image=data['image']
 
-    )
+    img = data['image']
+    if img["base64Data"] != '' :
+
+        file = ContentFile(base64.b64decode(img["base64Data"]), name='temp.' + img["imageType"])
+        print("Image",img)
+
+    # format, imgstr = img.split(';base64,') 
+    # ext = format.split('/')[-1]
+
+
+        post = Post.objects.create(
+                user=user,
+                content=data['content'],
+                image=file
+
+        )
+    else:
+            post = Post.objects.create(
+                user=user,
+                content=data['content'],
+            )
+
 
     serializer = PostSerializer(post, many=False)
     return Response(serializer.data)
@@ -153,6 +187,10 @@ def post_details(request, pk):
 def update_react(request,pk):
     user = request.user
     data = request.data
+
+    print("user",user)
+
+    print("data are",data)
 
     post = Post.objects.get(id=pk)
     # What if user is trying to remove their vote?
@@ -238,6 +276,13 @@ def create_comment(request,pk):
     user = request.user
     data = request.data
     post = Post.objects.get(id=pk)
+
+    post_serializer = PostSerializer(post,many=False)
+    print(post_serializer.data)
+
+    # post.comment_count =  post.comment_count + 1 
+    # post.save()
+    # print(post)
 
     comment = Comment.objects.create(user=user,post=post,content=data['content'])
 

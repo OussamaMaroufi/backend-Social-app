@@ -32,6 +32,9 @@ from .serializers import (UserProfileSerializer,
 
 # Email Validation
 
+from posts.serializers import PostSerializer
+from posts.models import Post
+
 
 def email_validator(email):
     """validates & return the entered email if correct
@@ -87,7 +90,7 @@ class RegisterView(APIView):
         except Exception as e:
             print(e)
             return Response({'detail': f'{e}'}, status=status.HTTP_400_BAD_REQUEST)
-        print("data from backend",serializer.data)
+        print("data from backend", serializer.data)
         return Response(serializer.data)
 
 
@@ -124,11 +127,14 @@ class MyTokenObtainPairView(TokenObtainPairView):
 # This View to make Search of specific User
 @api_view(['GET'])
 def users(request):
+
+    print("This methode of getting users is triggerd")
     query = request.query_params.get('q') or ''
     users = User.objects.filter(
         Q(userprofile__name__icontains=query) |
         Q(userprofile__username__icontains=query)
     ).order_by('-userprofile__followers_count')
+    print("this are users", users)
     paginator = PageNumberPagination()
     paginator.page_size = 10
     result_page = paginator.paginate_queryset(users, request)
@@ -169,6 +175,7 @@ def following(request):
 @api_view(['POST'])
 @permission_classes((IsAuthenticated,))
 def follow_user(request, username):
+
     user = request.user
     try:
         user_to_follow = User.objects.get(username=username)
@@ -181,7 +188,7 @@ def follow_user(request, username):
             user_to_follow_profile.followers.remove(user)
             user_to_follow_profile.followers_count = user_to_follow_profile.followers.count()
             user_to_follow_profile.save()
-            return Response('User unfollowed')
+            return Response(username + ' unfollowed')
         else:
             user_to_follow_profile.followers.add(user)
             user_to_follow_profile.followers_count = user_to_follow_profile.followers.count()
@@ -194,7 +201,7 @@ def follow_user(request, username):
             #     followed_by=user,
             #     content=f"{user.userprofile.name} started following you."
             # )
-            return Response('User followed')
+            return Response(username+' followed')
     except Exception as e:
         message = {'detail': f'{e}'}
         return Response(message, status=status.HTTP_204_NO_CONTENT)
@@ -253,7 +260,27 @@ class ProfilePictureUpdate(APIView):
         return Response(response)
 
 
+# View to list user posts
+@api_view(['GET'])
+def user_posts(request, username):
+
+    try:
+        user = User.objects.get(username=username)
+        posts = user.post_set.filter(parent=None)
+        serializer = PostSerializer(posts, many=True)
+        print(posts)
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 10
+        result_page = paginator.paginate_queryset(posts, request)
+        serializer = PostSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    except Exception as e:
+        return Response({'detail': f'{e}'}, status=status.HTTP_404_NOT_FOUND)
+
 # This view to change password
+
 
 @api_view(['POST'])
 @permission_classes((IsAuthenticated,))
